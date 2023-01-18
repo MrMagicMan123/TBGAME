@@ -30,7 +30,7 @@ class Game:
         self.player_team = Team()
         self.enemy_team = Team()
         self.unit_types = ["1", "2"] #1 is warrior 2 is tank
-        self.unit_chances = {"1": 0.5, "2": 0.5} #weightage, 1 is warrior, 2 is tanker
+        self.unit_chances = {"1": 0.5, "2": 0.5} #weightage, 1 is warrior, 2 is tank
         self.selected_unit = None #stored variables for print battle report
         self.target_unit = None #stored variables for print battle report
         self.damage = None #stored variables for print battle report
@@ -57,9 +57,6 @@ class Game:
             self.start()
 
     def create_team(self):
-        if len(self.player_team.units) >= 3:
-         print("3 units is enough to dominate this game, Let's BATTLE!!")
-         self.start()
         name = input("Enter unit name: ")
         unit_type = input("Enter unit type (Warrior(1) or Tanker(2)): ")
         if unit_type not in ["1", "2"]:
@@ -72,15 +69,16 @@ class Game:
 
 
     def create_enemy_team(self):
-      team_size = 3
-      for i in range(team_size):
+     team_size = len(self.player_team.units)
+     for i in range(team_size):
         unit_type = random.choices(
             population=["1", "2"],
-            weights=[0.5, 0.5], #weightage, chances of each class spawning is 50% and 50%
+            weights=[0.6, 0.4],
             k=1
         )[0]
         unit = Unit("AI"+str(random.randint(10, 99)), unit_type)
         self.enemy_team.add_unit(unit)
+
 
 
 
@@ -90,51 +88,55 @@ class Game:
             for index, unit in enumerate(self.player_team.units):
                 print(f"{index+1}. {unit.name}")
             selected_unit_index = int(input("Enter the number of the unit you want to select: ")) - 1
+            while ( selected_unit_index<0 or selected_unit_index>index): #if index out of range
+                print("please select a valid unit!")
+                selected_unit_index = int(input("Enter the number of the unit you want to select: ")) - 1
+            
             selected_unit = self.player_team.units[selected_unit_index]
-
             print("Select a target from the enemy team:")
             for index, unit in enumerate(self.enemy_team.units):
                 print(f"{index+1}. {unit.name}")
             target_unit_index = int(input("Enter the number of the unit you want to attack: ")) - 1
+            while ( target_unit_index<0 or target_unit_index>index): #if index out of range
+                print("please select a valid unit!")
+                selected_unit_index = int(input("Enter the number of the unit you want to select: ")) - 1
             target_unit = self.enemy_team.units[target_unit_index]
 
-            damage = selected_unit.atk - target_unit.defn + random.randint(-5, 10)
-            self.print_battle_report(selected_unit, target_unit, damage)
+            damage = selected_unit.atk - target_unit.defn + random.randint(-5, 10) #Damage = attacker.ATK – target.DEF + (random between negative 5 to 10)
+            if target_unit.hp > 100:
+             target_unit.hp = 100 #make sure HP not exceeding 100 no matter the damage output
+            self.print_battle_report(selected_unit, target_unit, damage) #shows hp,exp,rank and damage dealt
             target_unit.hp -= damage
             self.selected_unit_enemy = self.enemy_team.units[random.randint(0, len(self.enemy_team.units) - 1)]
             self.target_unit_enemy = self.player_team.units[random.randint(0, len(self.player_team.units) - 1)]
             self.damage_enemy = self.selected_unit_enemy.atk - self.target_unit_enemy.defn + random.randint(-5, 10)
             self.print_battle_report(self.selected_unit_enemy, self.target_unit_enemy, self.damage_enemy)
             self.target_unit_enemy.hp -= self.damage_enemy
-            selected_unit.exp += damage
+            selected_unit.exp += damage #damage value = exp value
             target_unit.exp += target_unit.defn
             if damage > 10:
-                target_unit.exp += 0.2*target_unit.exp #20% Extra EXP
+                target_unit.exp += 0.2*target_unit.exp #20% Extra EXP if damage is >10
             elif damage <= 0:
-                target_unit.exp += 0.5*target_unit.exp #50% Extra EXP
+                target_unit.exp += 0.5*target_unit.exp #50% Extra EXP if damage is <= 0
             if target_unit.exp >= 100:
-                target_unit.rank += 1
-                target_unit.exp = 0
+                target_unit.rank += 1 #rank +1
+                target_unit.exp = 0 #exp reset to 0 whenever promoted
                 target_unit.atk += 5 #attk +5 whenever promoted
-                target_unit.hp = 100
             if target_unit.hp <= 0:
-                self.enemy_team.units.remove(target_unit)
+                self.enemy_team.units.remove(target_unit) #remove enemy when defeated
                 print(f"{target_unit.name} has been defeated.")
             print(f"{selected_unit.name} attacked {target_unit.name} and dealt {damage} damage.")
             if len(self.enemy_team.units) == 0:
-                print("You win!")
-                self.start()
-            elif len(self.player_team.units) == 0:
-                print("You lose!")
-                self.start()
+                self.check_for_winner() #checks if game is set
+                
         except ValueError:
-            print("Invalid input, please enter a number.")
+            print("Invalid input, please enter a number.") #if user typed a non-numberic value
             self.select_unit_and_attack()
 
 
     def view_team(self):
         if len(self.player_team.units) == 0:
-            print("Create a team first")
+            print("Create a team first") #return "create a team first" when user selct view team before team is created
             self.start()
             return
         for unit in self.player_team.units:
@@ -151,13 +153,13 @@ class Game:
     def start_battle(self):
         if len(self.player_team.units) < 3:
             if len(self.player_team.units) < 2:
-                print("You need at least 3 units to start a battle.")
+                print("You need at least 3 units to start a battle.") #minimum 3 units needed to be created
             else:
-                print("You need at least 1 more unit to start a battle.")
+                print("You need at least 1 more unit to start a battle.") #prompt if insufficient units created
             self.start()
             return
         if len(self.player_team.units) == 0:
-            print("Team has not yet been created.")
+            print("Team has not yet been created.") #promot if insufficient units created 
             self.start()
             return
         while len(self.player_team.units) > 0 and len(self.enemy_team.units) > 0:
@@ -165,19 +167,19 @@ class Game:
             self.ai_turn()
             self.check_for_winner()
 
-    def ai_turn(self):
+    def ai_turn(self): 
         if len(self.player_team.units) == 0 or len(self.enemy_team.units) == 0:
             return
-        ai_unit = random.choice(self.enemy_team.units)
+        ai_unit = random.choice(self.enemy_team.units) #AI team formed in random
         target_unit = random.choice(self.player_team.units)
         damage = ai_unit.atk - target_unit.defn + random.randint(-5, 10)
         target_unit.hp -= damage
         ai_unit.exp += damage
         target_unit.exp += target_unit.defn
         if damage > 10:
-            target_unit.exp += target_unit.exp * 0.2
+            target_unit.exp += target_unit.exp * 0.2 #similar from line 120/122
         if damage <= 0:
-            target_unit.exp += target_unit.exp * 0.5
+            target_unit.exp += target_unit.exp * 0.5 #similar from line 120/122
         if ai_unit.exp >= 100:
             ai_unit.rank += 1
             ai_unit.exp -= 100
@@ -213,10 +215,10 @@ class Game:
 
     def check_for_winner(self):
         if len(self.player_team.units) == 0:
-            print("You lose !! Try harder next time")
+            print("YOU LOSE !! TRY HARDER NEXT TIME") #game is lost, prompt player to try again
             self.play_again()
         elif len(self.enemy_team.units) == 0:
-            print("You win !! you are a warrior in PSB acedemy")
+            print("YOU WIN !! YOU ARE A WARRIOR IN PSB ACADEMY") #you win
             self.play_again()
 
     def play_again(self):
